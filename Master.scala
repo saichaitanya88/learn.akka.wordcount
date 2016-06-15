@@ -32,13 +32,13 @@ class Master (nrOfMappers: Int, nrOfReducers: Int, latch: CountDownLatch) extend
     }
   }
   var mapRouter = {
-    val routees = Vector.fill(nrOfMappers) {
-      val r = context.actorOf(Props[Mapper])
-      context watch r
-      ActorRefRoutee(r)
+      val routees = Vector.fill(nrOfMappers) {
+        val r = context.actorOf(Props[Mapper])
+        context watch r
+        ActorRefRoutee(r)
+      }
+      Router(RoundRobinRoutingLogic(), routees)
     }
-    Router(RoundRobinRoutingLogic(), routees)
-  }
   var reduceRouter = {
     val routees = Vector.fill(nrOfReducers) {
       val r = context.actorOf(Props[Reducer])
@@ -50,6 +50,7 @@ class Master (nrOfMappers: Int, nrOfReducers: Int, latch: CountDownLatch) extend
   override def preStart() {
     start = System.currentTimeMillis
   }
+  
   override def postStop() {
     // tell the world that the calculation is complete
     println("Finished in: " + (System.currentTimeMillis - start) + "ms")

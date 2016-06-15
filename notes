@@ -1,0 +1,19 @@
+Master -> Mapper -> Master -> Reducer -> Master (with built in combiner)
+Mapper with 1 map, 1 reducer:
+Map Finished in: 12975ms
+Total Words: 6877185
+Finished in: 13103ms
+
+Mapper with 5 map, 1 reducer:
+Map Finished in: 10180ms
+Total Words: 6877185
+Finished in: 10539ms
+
+Mapper with 10 map, 1 reducer:
+Map Finished in: 13861ms
+Total Words: 6877185
+Finished in: 14404ms
+
+
+Without Routing
+Master -> Mapper -> Combiner -> Reducer -> Master (with built in aggregator)
