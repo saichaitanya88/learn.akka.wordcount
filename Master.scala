@@ -21,32 +21,29 @@ class Master (nrOfMappers: Int, nrOfReducers: Int, latch: CountDownLatch) extend
     case StartJob(filename) => {
       onStart(filename)
     }
-    case MapResult(results: List[(String, Int)]) => {
-      onMapResult(results)
+    case ShuffleResult => {
+      mapResultCount += 1
+      if (linesCount == mapResultCount){
+        reducer.tell(GetReduceResult, self)
+      }
     }
-    case ReduceResult(results) => {
-      onReduceResult(results)
+    case ReduceResult(map) => {
+      println("ReduceResult");
+      var total = 0
+      map.foreach(m => total += m._2)
+      println("uniquewords: " + map.size)
+      println("total: " + total)
+      self.tell(Complete(), self)
     }
     case Complete() => {
       context.system.terminate()
     }
   }
-  var mapRouter = {
-      val routees = Vector.fill(nrOfMappers) {
-        val r = context.actorOf(Props[Mapper])
-        context watch r
-        ActorRefRoutee(r)
-      }
-      Router(RoundRobinRoutingLogic(), routees)
-    }
-  var reduceRouter = {
-    val routees = Vector.fill(nrOfReducers) {
-      val r = context.actorOf(Props[Reducer])
-      context watch r
-      ActorRefRoutee(r)
-    }
-    Router(RoundRobinRoutingLogic(), routees)
-  }
+  
+  val reducer = context.system.actorOf(Props[Reducer])
+  var combiner = context.system.actorOf(Props(new Combiner(reducer, self)))
+  var mapper = context.system.actorOf(Props(new Mapper(combiner)))
+  
   override def preStart() {
     start = System.currentTimeMillis
   }
@@ -61,33 +58,7 @@ class Master (nrOfMappers: Int, nrOfReducers: Int, latch: CountDownLatch) extend
     val lines = Source.fromFile(filename).getLines
     for (line <- lines) {
       linesCount += 1
-	    mapRouter.route(new MapMessage(line), self)
+      mapper.tell(new MapMessage(line), self)
     }
-  }
-  def onMapResult(results: List[(String, Int)]){
-    mapResultCount += 1
-    val percent = mapResultCount*100/linesCount
-    if (percent > mapPercent){
-      println(s"Map : $percent%")
-      mapPercent = percent
-    }
-    results.foreach((s) => {
-      if (!shuffleResult.containsKey(s._1)){
-        shuffleResult.put(s._1, List(s._2))
-      }
-      else{
-        shuffleResult.replace(s._1, s._2 :: shuffleResult.get(s._1))
-      }
-    })
-    if (percent == 100){
-      println("Map Finished in: " + (System.currentTimeMillis - start) + "ms")
-      reduceRouter.route(new ReduceMessage(shuffleResult.asScala.toMap), self)
-    }
-  }
-  def onReduceResult(results: scala.collection.Map[String,Int]){
-    var total = 0; 
-    results.foreach(f => total+=f._2)   
-    println("Total Words: " + total)
-    self.tell(Complete(), self)
   }
 }

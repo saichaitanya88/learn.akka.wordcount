@@ -17,3 +17,5 @@ Finished in: 14404ms
 
 Without Routing
 Master -> Mapper -> Combiner -> Reducer -> Master (with built in aggregator)
+total: 6877185
+Finished in: 20407ms

@@ -11,7 +11,7 @@ object Application extends App {
     val filename = "../Scrap/data/varney.txt"   
     val system = ActorSystem("AppSystem")
     val latch = new CountDownLatch(1);
-    val master = system.actorOf(Props(new Master(10,1,latch)), name = "Master");
+    val master = system.actorOf(Props(new Master(1,1,latch)), name = "Master");
     master ! StartJob(filename)
     //latch.await();
     system.awaitTermination();
